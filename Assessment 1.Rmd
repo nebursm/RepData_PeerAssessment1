@@ -1,0 +1,66 @@
+---
+title: "Assessment 1"
+author: "Ruben Adad"
+date: "12 de noviembre de 2014"
+output: html_document
+---
+
+# Loading and preprocessing the data
+```{r loadddata}
+setwd("~/Documents/CURSOS/Reproducible Research/RepData_PeerAssessment1")
+activity <- read.csv("activity.csv", stringsAsFactors=F)
+summary(activity)
+head(activity)
+```
+
+
+# What is mean total number of steps taken per day?
+```{r part01}
+library(dplyr)
+grp <- group_by(activity, date) 
+tot_steps <- summarise(grp, Total_steps = sum(steps))
+tot_steps$date <- as.Date(tot_steps$date, "%Y-%m-%d")
+hist(tot_steps$Total_steps, main="total number of steps taken each day - includes missing values", xlab="daily steps", col="red")
+avg_steps <- summarise(grp, Mean = mean(steps), Median = median(steps))
+print(avg_steps)
+```
+
+# What is the average daily activity pattern?
+```{r part02}
+grp <- group_by(activity, interval)
+avg_interval <- summarise(grp, Mean = mean(steps, na.rm=T), Median = median(steps, na.rm=T))
+plot(avg_interval$interval, avg_interval$Mean, type="l", lwd=2, col="blue", main="average number of steps taken", xlab="date", ylab="average steps per interval", cex.axis=0.8)
+abline(h=c(25,50,75,100,125,150,175,200), lty=3)
+subset(avg_interval, avg_interval$Mean == max(na.omit(avg_interval$Mean)), select=c(interval, Mean))
+```
+
+# Imputing missing values
+```{r part03}
+cc <- table(complete.cases(activity))
+missing_values <- cc["FALSE"]
+print(missing_values)
+avg_steps$Mean[which(complete.cases(avg_steps) %in% "FALSE")] <- mean(na.omit(activity$steps))
+new_activity <- left_join(activity, avg_steps)
+new_activity$steps[which(complete.cases(new_activity$steps) %in% "FALSE")] <- new_activity$Mean[which(complete.cases(new_activity$steps) %in% "FALSE")]
+
+grp <- group_by(new_activity, date) 
+tot_steps <- summarise(grp, Total_steps = sum(steps))
+tot_steps$date <- as.Date(tot_steps$date, "%Y-%m-%d")
+hist(tot_steps$Total_steps, main="total number of steps taken each day - excluding missing values", xlab="daily steps", col="steelblue")
+avg_steps <- summarise(grp, Mean = mean(steps), Median = median(steps))
+print(avg_steps)
+```
+
+# Are there differences in activity patterns between weekdays and weekends?
+```{r part04}
+library(timeDate)
+library(ggplot2)
+new_activity$weekend <- factor(isWeekend(as.Date(new_activity$date)))
+new_activity$weekend <- gsub("TRUE", "weekend", new_activity$weekend)
+new_activity$weekend <- gsub("FALSE", "weekday", new_activity$weekend)
+grp <- group_by(new_activity, weekend, interval)
+avg_interval <- summarise(grp, Mean = mean(steps), Median = median(steps))
+g <- ggplot(avg_interval, aes(interval, Mean))
+g + geom_line(color="steelblue") + facet_grid(weekend ~ .) + labs(y = "average steps per interval") 
+```
+
