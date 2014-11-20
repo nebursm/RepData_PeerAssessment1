@@ -2,7 +2,7 @@
 title: "Assessment 1"
 author: "Ruben Adad"
 date: "November 15, 2014"
-output: html_document
+output: pdf_document
 ---
 
 # Loading and preprocessing the data
